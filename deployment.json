@@ -1,0 +1,8 @@
+{
+  "network": "preprod",
+  "contract": "payroll",
+  "contractAddress": "31d1d6e1fb6a2d9e5d597b43bcec12d8ce29d9d0d9798d91e036018fc34640d8",
+  "transactionHash": "2cb52361974526957a3f9f7a116156503d3aef2604f582702bd8e335a7e73cd4",
+  "transactionId": 498534,
+  "verifiedBy": "Midnight Preprod indexer"
+}
