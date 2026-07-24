@@ -1,0 +1,55 @@
+pragma language_version >= 0.22;
+
+import CompactStandardLibrary;
+
+export ledger total_budget: Uint<32>;
+export ledger distributed_amount: Uint<32>;
+export ledger employee_salaries: Map<Bytes<32>, Bytes<32>>;
+export ledger admin: Bytes<32>;
+
+constructor(budget: Uint<32>, admin_pk: Bytes<32>) {
+  total_budget = disclose(budget);
+  admin = disclose(admin_pk);
+  distributed_amount = 0;
+}
+
+witness localSecretKey(): Bytes<32>;
+witness salaryAmount(): Uint<32>;
+witness salarySalt(): Bytes<32>;
+
+export circuit registerEmployeeSalary(employee_pk: Bytes<32>, commitment: Bytes<32>): [] {
+  assert(disclose(publicKey(localSecretKey())) == admin, "Only admin can register employee salaries");
+  employee_salaries.insert(disclose(employee_pk), disclose(commitment));
+}
+
+export circuit claimSalary(): [] {
+  const sk = localSecretKey();
+  const pk = publicKey(sk);
+  const amt = salaryAmount();
+  const salt = salarySalt();
+
+  // Verify commitment matches registered public hash
+  const calculated_commitment = computeCommitment(amt, salt, sk);
+  assert(employee_salaries.member(disclose(pk)), "No salary record found for employee");
+  const stored_commitment = employee_salaries.lookup(disclose(pk));
+  assert(stored_commitment == calculated_commitment, "Revealed salary parameters do not match commitment");
+
+  // Assert that payout does not exceed total budget limits
+  assert(distributed_amount + disclose(amt) <= total_budget, "Budget limit exceeded");
+  
+  // Mark distributed amount publicly with narrowing cast
+  distributed_amount = (distributed_amount + disclose(amt)) as Uint<32>;
+}
+
+export circuit computeCommitment(amount: Uint<32>, salt: Bytes<32>, sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([
+    pad(32, "payroll:commit:"),
+    amount as Field as Bytes<32>,
+    salt,
+    sk
+  ]);
+}
+
+export circuit publicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "payroll:pk:"), sk]);
+}
