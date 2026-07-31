@@ -1,5 +1,7 @@
 # Corporate Payroll Splits
 
+![Frontend CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml/badge.svg?branch=main) ![Contract CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml/badge.svg?branch=main)
+
 A private allocation rail for proving a payroll distribution fits a budget without exposing each employee’s salary or destination.
 
 ## Use case
@@ -49,3 +51,6 @@ Every repository push runs separate frontend and contract checks. A tagged relea
 
 Demo video: [open the payroll operations walkthrough](https://drive.google.com/file/d/1UFQdhII0XHEgIodmr1J3Qj18RF6rzVqZ/view?usp=sharing).
 
+## Verification
+
+Privacy is the product feature: employee allocations and destinations remain private, while budget constraints and aggregate distribution state remain enforceable. Run `npm test`, `npm run compile`, and `npm run build`; the five contract scenarios are documented in [TESTING.md](./TESTING.md), the product scope is in [PROPOSAL.md](./PROPOSAL.md), and both CI workflows run on every push and pull request.
