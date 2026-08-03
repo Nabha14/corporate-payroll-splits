@@ -17,17 +17,21 @@ The `payroll` Compact contract exposes two business actions:
 
 `computeCommitment(amount, salt, sk)` derives the private commitment used by the flow. The ledger keeps the public budget and aggregate distributed amount while employee amounts and receiving identities remain shielded.
 
-## Known Preprod deployment
+## Current Preview deployment
 
 | Field | Value |
 | --- | --- |
-| Network | Midnight Preprod |
-| Contract address | `31d1d6e1fb6a2d9e5d597b43bcec12d8ce29d9d0d9798d91e036018fc34640d8` |
+| Network | Midnight Preview |
+| Contract address | `d7cb98b65cebf797cbcd53ebf9dbe0d1a13a23824676f86d1da12bb6237d912b` |
 | Contract name | `payroll` |
-| Deployment transaction | `2cb52361974526957a3f9f7a116156503d3aef2604f582702bd8e335a7e73cd4` |
+| Deployment transaction | `003776fe366397dc2a0ae0297944fbced697ddf69b23f081c786518884106582a8` |
+| Payroll deployer | `mn_addr_preview1u0x5hj5kx4utwdkq2hahjhvj5ndwed44z43aazwqwnckafce086qjpgcp7` |
+| Deployment time | `2026-08-03T18:55:43.988Z` |
 | Indexer | Confirmed |
 
 ## Developer path
+
+The payroll sandbox is funded only through the [official Preview faucet](https://faucet.preview.midnight.network/).
 
 ```bash
 npm install
@@ -37,7 +41,7 @@ npm run build
 npm run dev
 ```
 
-The deploy helper is available once a Preprod wallet and provider configuration are present:
+The deploy helper is available once a Preview wallet and provider configuration are present:
 
 ```bash
 npm run deploy
