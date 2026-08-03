@@ -6,7 +6,10 @@
     "compile": "npx nightforge compile",
     "deploy": "node deploy.mjs",
     "test": "vitest run",
+    "prepare:payroll-artifacts": "node scripts/sync-zk-assets.mjs",
+    "predev": "npm run prepare:payroll-artifacts",
     "dev": "vite",
+    "prebuild": "npm run prepare:payroll-artifacts",
     "build": "tsc && vite build"
   },
   "devDependencies": {

@@ -1,0 +1,9 @@
+{
+  "network": "preview",
+  "contract": "payroll",
+  "contractAddress": "d7cb98b65cebf797cbcd53ebf9dbe0d1a13a23824676f86d1da12bb6237d912b",
+  "transactionHash": "003776fe366397dc2a0ae0297944fbced697ddf69b23f081c786518884106582a8",
+  "deployer": "mn_addr_preview1u0x5hj5kx4utwdkq2hahjhvj5ndwed44z43aazwqwnckafce086qjpgcp7",
+  "deployedAt": "2026-08-03T18:55:43.988Z",
+  "verifiedBy": "Midnight Preview indexer"
+}
