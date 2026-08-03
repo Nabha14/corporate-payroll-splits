@@ -1,8 +1,8 @@
 {
-  "network": "preprod",
-  "contract": "payroll",
-  "contractAddress": "31d1d6e1fb6a2d9e5d597b43bcec12d8ce29d9d0d9798d91e036018fc34640d8",
-  "transactionHash": "2cb52361974526957a3f9f7a116156503d3aef2604f582702bd8e335a7e73cd4",
-  "transactionId": 498534,
-  "verifiedBy": "Midnight Preprod indexer"
+  "contractAddress": "d7cb98b65cebf797cbcd53ebf9dbe0d1a13a23824676f86d1da12bb6237d912b",
+  "network": "preview",
+  "deployedAt": "2026-08-03T18:55:43.988Z",
+  "deployer": "mn_addr_preview1u0x5hj5kx4utwdkq2hahjhvj5ndwed44z43aazwqwnckafce086qjpgcp7",
+  "transactionHash": "003776fe366397dc2a0ae0297944fbced697ddf69b23f081c786518884106582a8",
+  "totalBudget": "1000"
 }
