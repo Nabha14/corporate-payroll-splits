@@ -65,3 +65,7 @@ Demo video: [open the payroll operations walkthrough](https://drive.google.com/f
 ## Verification
 
 Privacy is the product feature: employee allocations and destinations remain private, while budget constraints and aggregate distribution state remain enforceable. Run `npm test`, `npm run compile`, and `npm run build`; the five contract scenarios are documented in [TESTING.md](./TESTING.md), the product scope is in [PROPOSAL.md](./PROPOSAL.md), and both CI workflows run on every push and pull request.
+
+## Payroll release discipline
+
+Before operating Corporate Payroll Splits, read the independent [security model](SECURITY.md) and [operations runbook](OPERATIONS.md). Runtime configuration is fail-closed and its executable checks live in [src/test/runtime-config.test.ts](src/test/runtime-config.test.ts).
