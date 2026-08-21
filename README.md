@@ -4,6 +4,13 @@
 
 A private allocation rail for proving a payroll distribution fits a budget without exposing each employee’s salary or destination.
 
+## Payroll assurance index
+
+- Business case: [PROPOSAL.md](./PROPOSAL.md)
+- Budget and claim controls: [payroll.test.ts](./src/test/payroll.test.ts)
+- QA ledger: [TESTING.md](./TESTING.md)
+- Deployed contract receipt: [deployment.json](./deployment.json)
+
 ## Use case
 
 A payroll operator defines a total budget and registers committed employee allocations. An eligible employee later claims the amount bound to their private commitment. The operations dashboard focuses on budget health, distributed total, claim readiness, wallet sync, and confirmed contract activity.

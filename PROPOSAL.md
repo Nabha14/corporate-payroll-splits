@@ -1,5 +1,9 @@
 # Product Proposal: Corporate Payroll Splits
 
+**Submission lane:** Payments  
+**Payroll project owner:** `Nabha14`  
+**Readiness:** Preview MVP with automated budget invariants
+
 ## Problem
 
 Payroll distribution requires proving budget compliance without exposing every employee’s compensation.
@@ -25,4 +29,3 @@ Total budget and distributed aggregate are public. Employee salary amounts, dest
 - Valid claims update distributed amount.
 - Mismatched claims fail.
 - Claims exceeding the budget fail.
-
