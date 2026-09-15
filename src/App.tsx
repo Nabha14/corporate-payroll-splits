@@ -1,385 +1,909 @@
-import { useState, useEffect } from 'react';
-import { Landmark, DollarSign, Compass, History, Wallet, Cpu, Lock } from 'lucide-react';
-import { submitPayrollCircuit } from './midnightClient';
-import { verifyPayrollDeployment, validatePayrollDeploymentRuntime } from './runtimeConfig';
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  ArrowUpRight,
+  Check,
+  Copy,
+  Fingerprint,
+  LayoutDashboard,
+  LockKeyhole,
+  RefreshCw,
+  ShieldCheck,
+  Wallet,
+  Users,
+  Activity,
+  ArrowRight,
+  CircleHelp,
+} from "lucide-react";
+import type { InitialAPI } from "@midnight-ntwrk/dapp-connector-api";
+import {
+  connectPayrollWallet,
+  prepareEmployee,
+  readPayrollLedger,
+  submitPayrollCircuit,
+  type ConnectedWallet,
+} from "./midnightClient";
+import { payrollBytes32, hexString } from "./payrollInputs";
+import {
+  verifyPayrollDeployment,
+  validatePayrollDeploymentRuntime,
+  type VerifiedDeployment,
+} from "./runtimeConfig";
 
-const RUNTIME = validatePayrollDeploymentRuntime({
-  networkId: import.meta.env.VITE_NETWORK_ID,
-  contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS,
-  faucetUrl: import.meta.env.VITE_FAUCET_URL,
-  demoMode: import.meta.env.VITE_DEMO_MODE,
-  production: import.meta.env.PROD,
-});
+type Tab = "overview" | "register" | "claim" | "privacy";
+type Ledger = Awaited<ReturnType<typeof readPayrollLedger>>;
+const repo = "https://github.com/Nabha14/corporate-payroll-splits";
+const short = (value: string) => value.slice(0, 10) + "…" + value.slice(-8);
+const number = (value: number | undefined) =>
+  value === undefined ? "—" : value.toLocaleString();
+const tabs = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "register", label: "Register allocation", icon: Users },
+  { id: "claim", label: "Employee claim", icon: Fingerprint },
+  { id: "privacy", label: "Privacy & trust", icon: ShieldCheck },
+] as const;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<string>("0.00");
-  const [connectingWallet, setConnectingWallet] = useState(false);
-  const [faucetLoading, setFaucetLoading] = useState(false);
-  const [laceDetected, setLaceDetected] = useState(false);
-  const [connectedWallet, setConnectedWallet] = useState<any>(null);
-
-  const [contractDeployed, setContractDeployed] = useState(false);
-  const [contractAddress, setContractAddress] = useState<string | null>(null);
-  const [runtimeIssue, setRuntimeIssue] = useState<string | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStep, setDeployStep] = useState(0);
-
-  const [ledger, setLedger] = useState({ employee_count: 3, total_allocated: 2400, active: true });
-  const [formValues, setFormValues] = useState({ split_amount: 800, employee_idx: 1 });
-  const [logs, setLogs] = useState<any[]>([]);
-  const [isProving, setIsProving] = useState(false);
-  const [provingStep, setProvingStep] = useState(0);
-
-  const proofSteps = [
-    "Checking corporate allocation bounds...",
-    "Retrieving employee cryptographic registry...",
-    "Deriving private shield balance keys...",
-    "Broadcasting split transaction proof..."
-  ];
-
-  const deploySteps = [
-    "Setting up payroll configuration matrix...",
-    "Hashing initial employee roster state...",
-    "Submitting ledger validation contract..."
-  ];
+  const [tab, setTab] = useState<Tab>("overview");
+  const [deployment, setDeployment] = useState<VerifiedDeployment | null>(null);
+  const [setupIssue, setSetupIssue] = useState("Checking deployment receipt…");
+  const [wallets, setWallets] = useState<InitialAPI[]>([]);
+  const [walletIndex, setWalletIndex] = useState("0");
+  const [wallet, setWallet] = useState<ConnectedWallet | null>(null);
+  const [address, setAddress] = useState("");
+  const [ledger, setLedger] = useState<Ledger | null>(null);
+  const [updated, setUpdated] = useState("");
+  const [busy, setBusy] = useState("");
+  const lock = useRef(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [logs, setLogs] = useState<
+    { id: string; action: string; time: string }[]
+  >([]);
+  const [amount, setAmount] = useState("");
+  const [secret, setSecret] = useState("");
+  const [salt, setSalt] = useState("");
+  const [adminSecret, setAdminSecret] = useState("");
+  const [employeeKey, setEmployeeKey] = useState("");
+  const [commitment, setCommitment] = useState("");
+  const [packet, setPacket] = useState<{
+    publicKey: string;
+    commitment: string;
+  } | null>(null);
+  const ready = !!wallet && !!deployment && !!ledger;
 
   useEffect(() => {
-    fetch('/deployment.json')
-      .then(response => {
-        if (!response.ok) throw new Error('Corporate Payroll Splits: deployment.json could not be loaded.');
-        return response.json();
-      })
-      .then(deployment => {
-        const verified = verifyPayrollDeployment(deployment);
-        if (RUNTIME.contractAddress && RUNTIME.contractAddress !== verified.contractAddress) {
-          throw new Error('Corporate Payroll Splits: environment address does not match deployment evidence.');
+    const abort = new AbortController();
+    async function load() {
+      try {
+        const runtime = validatePayrollDeploymentRuntime({
+          networkId: import.meta.env.VITE_NETWORK_ID,
+          contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS,
+          faucetUrl: import.meta.env.VITE_FAUCET_URL,
+          demoMode: import.meta.env.VITE_DEMO_MODE,
+          production: import.meta.env.PROD,
+        });
+        const response = await fetch(
+          import.meta.env.BASE_URL + "deployment.json",
+          { signal: abort.signal, cache: "no-store" },
+        );
+        if (!response.ok)
+          throw new Error(
+            "No deployment receipt is published. Complete the operator setup guide.",
+          );
+        const verified = verifyPayrollDeployment(await response.json());
+        if (
+          runtime.contractAddress &&
+          runtime.contractAddress !== verified.contractAddress
+        )
+          throw new Error(
+            "Configured address does not match the deployment receipt.",
+          );
+        if (!abort.signal.aborted) {
+          setDeployment(verified);
+          setSetupIssue("");
         }
-        setContractAddress(verified.contractAddress);
-        setContractDeployed(true);
-        setRuntimeIssue(null);
-      })
-      .catch(error => {
-        setContractAddress(null);
-        setContractDeployed(false);
-        setRuntimeIssue(error instanceof Error ? error.message : 'Corporate Payroll Splits: configuration failed.');
-      });
-    const detectLace = () => {
-      const hasMidnightWallet = Object.values((window as any).midnight ?? {}).some((candidate: any) => typeof candidate?.connect === 'function');
-      setLaceDetected(hasMidnightWallet);
+      } catch (e) {
+        if (!abort.signal.aborted)
+          setSetupIssue(
+            e instanceof Error ? e.message : "Deployment setup failed.",
+          );
+      }
+    }
+    const detect = () =>
+      setWallets(
+        Object.values(
+          (window as Window & { midnight?: Record<string, InitialAPI> })
+            .midnight ?? {},
+        ).filter(
+          (w) =>
+            typeof w.connect === "function" && w.apiVersion?.startsWith("4."),
+        ),
+      );
+    void load();
+    detect();
+    const timer = setInterval(detect, 1500);
+    return () => {
+      abort.abort();
+      clearInterval(timer);
     };
-    detectLace();
-    const timer = setInterval(detectLace, 1000);
-    return () => clearInterval(timer);
   }, []);
 
-  const connectLace = async () => {
-    setConnectingWallet(true);
+  async function run(label: string, action: () => Promise<void>) {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(label);
+    setError("");
+    setMessage("");
     try {
-      const candidates = Object.values((window as any).midnight ?? {}) as Array<{
-        connect?: (networkId: string) => Promise<any>;
-        name?: string;
-      }>;
-      const wallet = candidates.find(candidate => typeof candidate.connect === 'function');
-      if (!wallet?.connect) {
-        throw new Error('No Midnight wallet connector was detected. Install 1AM or Lace and unlock it.');
-      }
-
-      const connected = await wallet.connect(RUNTIME.networkId);
-      (window as any).__midnightConnectedWallet = connected;
-      const addressInfo = await connected.getUnshieldedAddress();
-      const balances = await connected.getUnshieldedBalances();
-      const nightBalance = Object.values(balances)[0] ?? 0n;
-
-      setWalletAddress(addressInfo.unshieldedAddress);
-      setWalletBalance((Number(nightBalance) / 1_000_000).toFixed(2));
-      setWalletConnected(true);
-      setConnectedWallet(connected);
-      if (import.meta.env.VITE_CONTRACT_ADDRESS) {
-        setContractAddress(import.meta.env.VITE_CONTRACT_ADDRESS);
-        setContractDeployed(true);
-      }
-      logTransaction('wallet', 'MIDNIGHT WALLET CONNECTED', '—', 'Connected through the Midnight DApp Connector API');
-    } catch (err) {
-      console.error('Midnight wallet connection failed:', err);
-      alert(err instanceof Error ? err.message : 'Midnight wallet connection failed.');
+      await action();
+    } catch {
+      setError(
+        "Operation did not complete. Check wallet approval, Preprod network, DUST balance, and your inputs. If you approved a transaction, check its status in your wallet before retrying.",
+      );
     } finally {
-      setConnectingWallet(false);
+      lock.current = false;
+      setBusy("");
     }
-  };
-
-
-
-  const disconnectLace = () => {
-    setWalletConnected(false);
-    setWalletAddress(null);
-    setWalletBalance("0.00");
-    logTransaction('0x0000...0000', 'LACE WALLET DISCONNECTED', '0.00 tNIGHT', 'Disconnected wallet context');
-  };
-
-  const requestFaucet = () => {
-    if (!walletConnected) return;
-    window.open(RUNTIME.faucetUrl, '_blank', 'noopener,noreferrer');
-    logTransaction('—', 'FAUCET OPENED', '—', 'Funding must be confirmed by the official Midnight Preview faucet and wallet balance refresh.');
-  };
-
-  const deployContractAction = async () => {
-    if (!contractAddress || runtimeIssue) {
-      alert('Corporate Payroll Splits: no verified Preview deployment is available.');
+  }
+  async function refresh(currentWallet = wallet) {
+    if (!currentWallet || !deployment) return;
+    setLedger(null);
+    setUpdated("");
+    const value = await readPayrollLedger(
+      currentWallet,
+      deployment.contractAddress,
+    );
+    setLedger(value);
+    setUpdated(new Date().toLocaleTimeString());
+  }
+  function clearSecrets() {
+    setSecret("");
+    setSalt("");
+    setAdminSecret("");
+    setPacket(null);
+  }
+  async function connect() {
+    if (!wallets[Number(walletIndex)]) {
+      setError(
+        "Install or unlock a Midnight wallet supporting DApp Connector v4, then reload.",
+      );
       return;
     }
-    setContractDeployed(true);
-    logTransaction('—', 'VERIFIED DEPLOYMENT ATTACHED', '—', `Using finalized Preview contract ${contractAddress}`);
-  };
-
-  const paySplit = async () => {
-    if (!walletConnected || !contractDeployed || !contractAddress) return;
+    await run("Connecting wallet", async () => {
+      const session = await connectPayrollWallet(wallets[Number(walletIndex)]);
+      setWallet(session.connected);
+      setAddress(session.address);
+      await refresh(session.connected);
+      setMessage("Wallet connected to Preprod.");
+    });
+  }
+  async function submit(
+    event: FormEvent,
+    action: "registerEmployeeSalary" | "claimSalary",
+  ) {
+    event.preventDefault();
+    if (!wallet || !deployment || !ready) return;
+    let state,
+      args: unknown[] = [];
     try {
-      const result = await submitPayrollCircuit((window as any).__midnightConnectedWallet, contractAddress, 'claimSalary', []);
-      setLedger(prev => ({ ...prev, total_allocated: prev.total_allocated + Number(formValues.split_amount) }));
-      logTransaction(result.txId, 'CONFIRMED ON MIDNIGHT', '—', 'Confirmed claimSalary on ' + contractAddress);
-      return;
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'The Midnight transaction failed.');
-      logTransaction('—', 'TRANSACTION FAILED', '—', err instanceof Error ? err.message : 'Unknown transaction failure');
+      if (action === "claimSalary")
+        state = prepareEmployee(amount, secret, salt).state;
+      else {
+        state = {
+          secretKey: payrollBytes32(adminSecret, "Administrator secret"),
+          salaryAmount: 0n,
+          salarySalt: new Uint8Array(32),
+        };
+        args = [
+          payrollBytes32(employeeKey, "Employee public key"),
+          payrollBytes32(commitment, "Commitment"),
+        ];
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Check your inputs.");
       return;
     }
-
-  };
-
-  const logTransaction = (hash: string, status: string, amount: string, details: string) => {
-    setLogs(prev => [
-      {
-        hash,
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        status,
-        amount,
-        details
-      },
-      ...prev
-    ]);
-  };
-
-  if (runtimeIssue) {
-    return (
-      <main role="alert" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', background: '#080b12', color: '#f8fafc' }}>
-        <section style={{ width: 'min(620px, 100%)', border: '1px solid #ef4444', borderRadius: '18px', padding: '28px', background: '#151922' }}>
-          <p style={{ margin: 0, color: '#fca5a5', fontWeight: 800, letterSpacing: '0.08em' }}>SAFE START BLOCKED</p>
-          <h1 style={{ margin: '12px 0', fontSize: 'clamp(1.7rem, 5vw, 2.6rem)' }}>Corporate Payroll Splits</h1>
-          <p style={{ lineHeight: 1.65, color: '#cbd5e1' }}>{runtimeIssue}</p>
-          <p style={{ lineHeight: 1.65, color: '#94a3b8' }}>No wallet or contract operation was attempted. Restore this repository's own Preview deployment record, then reload.</p>
-          <button onClick={() => window.location.reload()} style={{ marginTop: '8px', padding: '12px 18px', border: 0, borderRadius: '10px', fontWeight: 800, cursor: 'pointer' }}>Retry configuration</button>
-        </section>
-      </main>
+    await run("Approve in wallet · proving and confirming", async () => {
+      const result = await submitPayrollCircuit(
+        wallet,
+        deployment.contractAddress,
+        action,
+        args,
+        state,
+      );
+      setLogs((previous) => [
+        {
+          id: result.txId,
+          action:
+            action === "claimSalary"
+              ? "Claim recorded"
+              : "Allocation registered",
+          time: new Date().toLocaleTimeString(),
+        },
+        ...previous,
+      ]);
+      clearSecrets();
+      setMessage(
+        "Transaction confirmed on Preprod. No salary tokens were transferred.",
+      );
+      try {
+        await refresh();
+      } catch {
+        setLedger(null);
+        setError(
+          "Transaction confirmed, but ledger refresh failed. Refresh before any further operation.",
+        );
+      }
+    });
+  }
+  function prepare() {
+    setError("");
+    try {
+      const result = prepareEmployee(amount, secret, salt);
+      setPacket({ publicKey: result.publicKey, commitment: result.commitment });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Check allocation inputs.");
+    }
+  }
+  function generatePrivateValues() {
+    if (
+      (secret || salt) &&
+      !window.confirm(
+        "Replace the private values in this form? Keep an offline backup if they belong to a registered allocation.",
+      )
+    )
+      return;
+    setSecret(hexString(crypto.getRandomValues(new Uint8Array(32))));
+    setSalt(hexString(crypto.getRandomValues(new Uint8Array(32))));
+    setPacket(null);
+    setMessage(
+      "New private values generated. Save them in your password manager using the reveal control before registering.",
     );
   }
+  async function copy(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setMessage("Public value copied.");
+    } catch {
+      setError(
+        "Clipboard unavailable. Select and copy the public value manually.",
+      );
+    }
+  }
+  const step = !deployment ? 0 : !wallet ? 1 : !ledger ? 2 : 3;
+  const used = ledger?.budget
+    ? Math.min(100, (ledger.distributed / ledger.budget) * 100)
+    : 0;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'Outfit, sans-serif' }}>
-      
-      {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', borderBottom: '1px solid var(--border-color)', marginBottom: '30px' }}>
-        <div>
-          <span style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '20px', background: 'rgba(5, 150, 105, 0.15)', color: '#34d399', border: '1px solid rgba(5, 150, 105, 0.3)', fontWeight: 600 }}>Project 5</span>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '6px' }}>Corporate Payroll Splits</h1>
-        </div>
-        <div>
-          {walletConnected ? (
-            <div style={{ background: 'rgba(5, 150, 105, 0.08)', border: '1px solid rgba(5, 150, 105, 0.25)', borderRadius: '12px', padding: '8px 16px' }}>
-              Balance: <strong style={{ color: '#34d399' }}>{walletBalance} tNIGHT</strong>
-            </div>
-          ) : (
-            <button onClick={connectLace} style={{ width: 'auto' }}>Connect Lace Wallet</button>
-          )}
-        </div>
-      </header>
-
-<section className="home-dashboard" aria-labelledby="home-dashboard-title">
-        <div className="home-dashboard__lead">
-          <span className="home-kicker">Payroll operations</span>
-          <h2 id="home-dashboard-title">Disbursement rail</h2>
-          <p>Allocate payroll without exposing salary amounts.</p>
-          <div className="home-actions">
-            <button type="button" onClick={() => setActiveTab('dashboard')}>Open Workspace</button>
-            <button type="button" className="home-secondary" onClick={() => setActiveTab('privacy')}>Read Privacy Model</button>
-          </div>
-        </div>
-        <div className="home-dashboard__grid">
-          <article className="home-card"><span>Network</span><strong>Midnight Preview</strong><small>{contractDeployed ? 'Contract verified' : 'Contract setup pending'}</small></article>
-          <article className="home-card"><span>Current signal</span><strong>Private split ready</strong><small>Employee data shielded</small></article>
-          <article className="home-card"><span>Wallet session</span><strong>{walletConnected ? 'Connected' : 'Not connected'}</strong><small>{walletConnected ? walletBalance + ' tNIGHT available' : 'Connect 1AM to continue'}</small></article>
-          <article className="home-card"><span>Contract address</span><strong className="home-address">{contractAddress ? contractAddress.slice(0, 14) + '…' : 'Awaiting deployment'}</strong><small>Unique project deployment</small></article>
-        </div>
-      </section>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-        <button onClick={() => setActiveTab('dashboard')} style={{ width: 'auto', padding: '10px 20px', background: activeTab === 'dashboard' ? 'var(--color-primary)' : 'transparent', color: activeTab === 'dashboard' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>💵 Split Allocations</button>
-        <button onClick={() => setActiveTab('deployer')} style={{ width: 'auto', padding: '10px 20px', background: activeTab === 'deployer' ? 'var(--color-primary)' : 'transparent', color: activeTab === 'deployer' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>📈 Budget Deployer</button>
-        <button onClick={() => setActiveTab('walletHub')} style={{ width: 'auto', padding: '10px 20px', background: activeTab === 'walletHub' ? 'var(--color-primary)' : 'transparent', color: activeTab === 'walletHub' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>💳 Paymaster Wallet</button>
-        <button onClick={() => setActiveTab('privacy')} style={{ width: 'auto', padding: '10px 20px', background: activeTab === 'privacy' ? 'var(--color-primary)' : 'transparent', color: activeTab === 'privacy' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>🔒 Payroll Privacy Model</button>
-      </div>
-
-      <main style={{ minHeight: '400px' }}>
-        {activeTab === 'dashboard' && (
+    <div className="app-shell">
+      <a className="skip-link" href="#workspace">
+        Skip to workspace
+      </a>
+      <aside className="sidebar">
+        <a href="#workspace" className="brand">
+          <span className="brand-symbol">
+            <Fingerprint size={25} />
+          </span>
+          <span>
+            Nabha<span className="brand-caption">PAYROLL WORKSPACE</span>
+          </span>
+        </a>
+        <div className="workspace-label">
+          <span className="workspace-avatar">CP</span>
           <div>
-            {(!walletConnected || !contractDeployed) && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239,68,68,0.2)', padding: '20px', borderRadius: '12px', marginBottom: '30px', textAlign: 'center' }}>
-                <h3 style={{ margin: 0, color: '#f87171' }}>⚠️ Missing Setup Prerequisites</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0', fontSize: '0.9rem' }}>
-                  {!walletConnected ? "Please connect your Lace Wallet in the Wallet Hub." : "Please deploy the Compact contract in the ZK Deployer tab."}
-                </p>
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '30px', opacity: (walletConnected && contractDeployed) ? 1 : 0.4, pointerEvents: (walletConnected && contractDeployed) ? 'auto' : 'none' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '24px' }}>
-                  <h2 style={{ fontSize: '1.2rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399' }}><DollarSign className="w-5 h-5" /> Financial Ledger</h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ padding: '16px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Allocated Payroll</span>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 'bold' }}>{ledger.total_allocated} tNIGHT</div>
-                    </div>
-                    <div style={{ padding: '16px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Employees Registered</span>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 'bold' }}>{ledger.employee_count} members</div>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              <div>
-                <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '24px' }}>
-                  <h2 style={{ fontSize: '1.2rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399' }}><Compass className="w-5 h-5" /> Disburse Splits</h2>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Split Payout Amount (tNIGHT)</label>
-                    <input 
-                      type="number" 
-                      value={formValues.split_amount} 
-                      onChange={e => setFormValues({ ...formValues, split_amount: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Employee List Index (Private)</label>
-                    <input 
-                      type="number" 
-                      value={formValues.employee_idx} 
-                      onChange={e => setFormValues({ ...formValues, employee_idx: Number(e.target.value) })}
-                    />
-                  </div>
-                  <button onClick={paySplit} disabled={isProving}>
-                    {isProving ? "Generating Split proof..." : "Disburse Employee Split"}
-                  </button>
-
-                  {isProving && (
-                    <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(5,150,105,0.05)', border: '1px dashed #059669', borderRadius: '8px', fontSize: '0.8rem' }}>
-                      {proofSteps.map((step, idx) => (
-                        <div key={idx} style={{ padding: '3px 0', color: idx === provingStep ? 'white' : 'var(--text-secondary)', opacity: idx <= provingStep ? 1 : 0.4 }}>
-                          {idx < provingStep ? '✓' : '●'} {step}
-                        </div>
-                      ))}
-                    </div>
+            Corporate payroll<small>Test-network workspace</small>
+          </div>
+        </div>
+        <p className="nav-label">WORKSPACE</p>
+        <nav aria-label="Workspace navigation">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className={tab === id ? "nav-item active" : "nav-item"}
+              aria-current={tab === id ? "page" : undefined}
+              onClick={() => {
+                setTab(id);
+                setError("");
+              }}
+            >
+              <Icon size={18} />
+              {label}
+              {tab === id && <span className="nav-dot" />}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="privacy-note">
+            <LockKeyhole size={19} />
+            <strong>Your secrets stay yours.</strong>
+            <p>
+              Use dedicated payroll secrets. Never enter a wallet recovery
+              phrase.
+            </p>
+          </div>
+          <a
+            href={repo + "/blob/main/SETUP.md"}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <CircleHelp size={17} />
+            Setup & documentation
+            <ArrowUpRight size={15} />
+          </a>
+          <span className="built-on">BUILT ON MIDNIGHT · BY NABHA</span>
+        </div>
+      </aside>
+      <div className="main-shell">
+        <header className="topbar">
+          <div className="breadcrumb">
+            Workspace <span>/</span>{" "}
+            <strong>{tabs.find((t) => t.id === tab)?.label}</strong>
+          </div>
+          <div className="top-actions">
+            <span className="network-pill">
+              <span />
+              Preprod
+            </span>
+            {wallet ? (
+              <button
+                className="button secondary compact"
+                disabled={!!busy}
+                onClick={() => {
+                  setWallet(null);
+                  setAddress("");
+                  setLedger(null);
+                  clearSecrets();
+                  setMessage("Local wallet session disconnected.");
+                }}
+              >
+                <Wallet size={16} />
+                {short(address)} · Disconnect
+              </button>
+            ) : (
+              <>
+                <select
+                  aria-label="Choose Midnight wallet"
+                  value={walletIndex}
+                  onChange={(e) => setWalletIndex(e.target.value)}
+                  disabled={!!busy || !wallets.length}
+                >
+                  {wallets.length ? (
+                    wallets.map((w, i) => (
+                      <option key={i} value={i}>
+                        {w.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option>No wallet detected</option>
                   )}
-                </section>
+                </select>
+                <button
+                  className="button compact"
+                  disabled={!!busy}
+                  onClick={connect}
+                >
+                  <Wallet size={16} />
+                  Connect wallet
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+        <main id="workspace" tabIndex={-1}>
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">CORPORATE PAYROLL SPLITS</p>
+              <h1>
+                {tab === "overview"
+                  ? "Payroll, with proof."
+                  : tab === "register"
+                    ? "One allocation. One claim."
+                    : tab === "claim"
+                      ? "Your allocation, verified."
+                      : "Know what is public."}
+              </h1>
+              <p>
+                {tab === "overview"
+                  ? "A clear view of your budget. Verifiable allocation and claim records."
+                  : tab === "register"
+                    ? "Register an employee commitment with your administrator key."
+                    : tab === "claim"
+                      ? "Prepare an allocation commitment or claim a registered amount."
+                      : "Zero-knowledge proofs are not a promise that every field is hidden."}
+              </p>
+            </div>
+            <span className="version-tag">MVP / V2</span>
+          </div>
+          {setupIssue && (
+            <div className="notice warning" role="status">
+              <ShieldCheck size={20} />
+              <div>
+                <strong>Preprod deployment required</strong>
+                <p>{setupIssue} Transactions remain disabled.</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'deployer' && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '30px' }}>
-            <h2 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#34d399' }}>
-              <Cpu className="w-6 h-6" /> Payroll Deployer
-            </h2>
-            {contractDeployed ? (
-              <p style={{ color: '#10b981' }}>Deployed Preview Address: {contractAddress}</p>
-            ) : (
-              <button onClick={deployContractAction} disabled={isDeploying || !walletConnected}>
-                {isDeploying ? "Deploying..." : "Compile & Deploy Contract"}
+          )}
+          {error && (
+            <div className="notice error" role="alert">
+              {error}
+              <button onClick={() => setError("")} aria-label="Dismiss error">
+                ×
               </button>
-            )}
-
-            {isDeploying && (
-              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(5, 150, 105, 0.05)', border: '1px dashed #059669', borderRadius: '8px', fontSize: '0.8rem' }}>
-                {deploySteps.map((step, idx) => (
-                  <div key={idx} style={{ padding: '3px 0', color: idx === deployStep ? 'white' : 'var(--text-secondary)', opacity: idx <= deployStep ? 1 : 0.4 }}>
-                    {idx < deployStep ? '✓' : '●'} {step}
-                  </div>
-                ))}
+            </div>
+          )}
+          <div aria-live="polite">
+            {(busy || message) && (
+              <div className="notice info">
+                {busy ? (
+                  <RefreshCw size={18} className="spinning" />
+                ) : (
+                  <Check size={18} />
+                )}
+                {busy || message}
               </div>
             )}
           </div>
-        )}
 
-        {activeTab === 'walletHub' && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '30px' }}>
-            <h2 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#34d399' }}>
-              <Wallet className="w-6 h-6" /> Wallet Hub & Logs
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', padding: '24px', borderRadius: '12px' }}>
-                <h3>Lace Keys</h3>
-                {walletConnected ? (
-                  <div>
-                    <div style={{ fontFamily: 'monospace', wordBreak: 'break-all', fontSize: '0.85rem', marginBottom: '10px' }}>{walletAddress}</div>
-                    <button onClick={disconnectLace} style={{ width: 'auto', background: '#dc2626' }}>Disconnect</button>
+          {tab === "overview" && (
+            <>
+              <section className="overview-grid">
+                <div className="budget-panel">
+                  <div className="panel-label">
+                    <span>BUDGET OVERVIEW</span>
+                    <span className="subtle-tag">
+                      {ledger ? "Chain data" : "Awaiting chain data"}
+                    </span>
                   </div>
-                ) : (
-                  <button onClick={connectLace} style={{ width: 'auto' }}>Connect Wallet</button>
-                )}
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', padding: '24px', borderRadius: '12px' }}>
-                <h3>tNIGHT Faucet</h3>
-                <button onClick={requestFaucet} disabled={!walletConnected || faucetLoading}>
-                  {faucetLoading ? "Requesting..." : "Mint Faucet Tokens"}
+                  <h2>
+                    Every allocation.
+                    <br />
+                    <span>Accounted for.</span>
+                  </h2>
+                  <div className="budget-value">
+                    {number(ledger?.budget)}
+                    <span>accounting units</span>
+                  </div>
+                  <div
+                    className="budget-track"
+                    role="progressbar"
+                    aria-label="Budget claimed"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={ledger ? used : undefined}
+                  >
+                    <span style={{ width: used + "%" }} />
+                  </div>
+                  <div className="budget-legend">
+                    <span>
+                      <i />
+                      {number(ledger?.distributed)} claimed
+                    </span>
+                    <span>
+                      {number(
+                        ledger ? ledger.budget - ledger.distributed : undefined,
+                      )}{" "}
+                      remaining
+                    </span>
+                  </div>
+                  <p className="budget-footnote">
+                    Claim accounting only. This contract does not custody or
+                    transfer tokens.
+                  </p>
+                </div>
+                <div className="readiness-panel panel">
+                  <div className="section-title">
+                    <h2>Ready when you are</h2>
+                    <span className="count-label">{step}/3</span>
+                  </div>
+                  <p className="muted">
+                    Three checks before your first transaction.
+                  </p>
+                  {[
+                    "Publish a Preprod v2 receipt",
+                    "Connect a Preprod wallet",
+                    "Read the deployed ledger",
+                  ].map((label, i) => (
+                    <div className="check-step" key={label}>
+                      <span
+                        className={
+                          step > i ? "step-number complete" : "step-number"
+                        }
+                      >
+                        {step > i ? <Check size={15} /> : i + 1}
+                      </span>
+                      <div>
+                        <strong>{label}</strong>
+                        <small>
+                          {i === 0
+                            ? "A new address is required for this contract."
+                            : i === 1
+                              ? "Approve access in your wallet extension."
+                              : "Confirm the budget from the indexer."}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    className="button secondary full"
+                    disabled={!!busy || !wallet || !deployment}
+                    onClick={() => run("Reading ledger", () => refresh())}
+                  >
+                    <RefreshCw size={16} />
+                    Refresh chain state
+                  </button>
+                </div>
+              </section>
+              <section className="stats-row" aria-label="Payroll statistics">
+                <div>
+                  <Users size={20} />
+                  <span>
+                    Registered allocations
+                    <strong>{number(ledger?.employeeCount)}</strong>
+                  </span>
+                </div>
+                <div>
+                  <ShieldCheck size={20} />
+                  <span>
+                    Confirmed claims
+                    <strong>{number(ledger?.claimedCount)}</strong>
+                  </span>
+                </div>
+                <div>
+                  <Activity size={20} />
+                  <span>
+                    Last ledger refresh
+                    <strong className="small-stat">
+                      {updated || "Not connected"}
+                    </strong>
+                  </span>
+                </div>
+              </section>
+              <div className="action-grid">
+                <button
+                  className="action-card"
+                  onClick={() => setTab("register")}
+                >
+                  <span className="action-icon">
+                    <Users size={21} />
+                  </span>
+                  <div>
+                    <span className="eyebrow">FOR OPERATORS</span>
+                    <h3>Register an allocation</h3>
+                    <p>Commit an employee allocation to the ledger.</p>
+                  </div>
+                  <ArrowRight size={20} />
+                </button>
+                <button className="action-card" onClick={() => setTab("claim")}>
+                  <span className="action-icon lilac">
+                    <Fingerprint size={23} />
+                  </span>
+                  <div>
+                    <span className="eyebrow">FOR EMPLOYEES</span>
+                    <h3>Prepare or claim</h3>
+                    <p>Prove ownership using your payroll secret.</p>
+                  </div>
+                  <ArrowRight size={20} />
                 </button>
               </div>
-            </div>
-
-            <section>
-              <h3>Recent Actions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {logs.map((log, idx) => (
-                  <div key={idx} style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34d399', fontWeight: 600 }}>
-                      <span>{log.status}</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{log.timestamp}</span>
-                    </div>
-                    <div style={{ marginTop: '4px' }}>{log.details}</div>
+              <section className="panel activity-panel">
+                <div className="section-title">
+                  <h2>Session activity</h2>
+                  <span className="muted">Finalized transactions only</span>
+                </div>
+                {logs.length ? (
+                  <div className="activity-list">
+                    {logs.map((log) => (
+                      <div key={log.id}>
+                        <Check size={17} />
+                        <strong>{log.action}</strong>
+                        <code>{short(log.id)}</code>
+                        <button
+                          className="icon-button"
+                          aria-label="Copy transaction identifier"
+                          onClick={() => copy(log.id)}
+                        >
+                          <Copy size={15} />
+                        </button>
+                        <time>{log.time}</time>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        )}
+                ) : (
+                  <div className="empty-state">
+                    <Activity size={25} />
+                    <strong>A clean ledger starts here</strong>
+                    <p>
+                      Your confirmed actions will appear here during this
+                      session.
+                      <br />
+                      Nothing is simulated or pre-filled.
+                    </p>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
 
-        {activeTab === 'privacy' && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '30px' }}>
-            <h2 style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#34d399' }}>
-              <Lock className="w-6 h-6" /> Zero-Knowledge Privacy Model
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-              <div style={{ background: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.15)', padding: '24px', borderRadius: '12px' }}>
-                <h3 style={{ color: '#10b981' }}>Can Learn:</h3>
-                <ul>
-                  <li>Global corporate treasury budget limits on-chain.</li>
-                  <li>Aggregate splits disburse volume sizes.</li>
-                </ul>
-              </div>
-              <div style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.15)', padding: '24px', borderRadius: '12px' }}>
-                <h3 style={{ color: '#f87171' }}>Cannot Learn:</h3>
-                <ul>
-                  <li>Individual employee payout percentages.</li>
-                  <li>Employee address mapping details.</li>
-                </ul>
-              </div>
+          {(tab === "register" || tab === "claim") && (
+            <div className="form-layout">
+              <section className="panel form-panel">
+                <div className="section-title">
+                  <h2>
+                    {tab === "register"
+                      ? "Allocation details"
+                      : "Private claim details"}
+                  </h2>
+                  <LockKeyhole size={19} />
+                </div>
+                <p className="muted">
+                  {tab === "register"
+                    ? "Ask the employee for their public key and commitment. You do not need their secret."
+                    : "Use a dedicated 32-byte payroll secret, not a wallet seed or recovery phrase."}
+                </p>
+                <form
+                  onSubmit={(event) =>
+                    submit(
+                      event,
+                      tab === "register"
+                        ? "registerEmployeeSalary"
+                        : "claimSalary",
+                    )
+                  }
+                >
+                  <fieldset disabled={!!busy}>
+                    {tab === "register" ? (
+                      <>
+                        <label>
+                          Employee public key
+                          <input
+                            required
+                            value={employeeKey}
+                            onChange={(e) => setEmployeeKey(e.target.value)}
+                            placeholder="64 hexadecimal characters"
+                            spellCheck={false}
+                          />
+                        </label>
+                        <label>
+                          Allocation commitment
+                          <input
+                            required
+                            value={commitment}
+                            onChange={(e) => setCommitment(e.target.value)}
+                            placeholder="64 hexadecimal characters"
+                            spellCheck={false}
+                          />
+                        </label>
+                        <label>
+                          Administrator payroll secret
+                          <input
+                            required
+                            type="password"
+                            autoComplete="off"
+                            value={adminSecret}
+                            onChange={(e) => setAdminSecret(e.target.value)}
+                            placeholder="Dedicated administrator secret"
+                          />
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <label>
+                          Allocation amount{" "}
+                          <span>Accounting units, not tNIGHT</span>
+                          <input
+                            required
+                            inputMode="numeric"
+                            value={amount}
+                            onChange={(e) => {
+                              setAmount(e.target.value);
+                              setPacket(null);
+                            }}
+                            placeholder="e.g. 300"
+                          />
+                        </label>
+                        <label>
+                          Employee payroll secret
+                          <input
+                            required
+                            type="password"
+                            autoComplete="off"
+                            value={secret}
+                            onChange={(e) => {
+                              setSecret(e.target.value);
+                              setPacket(null);
+                            }}
+                            placeholder="64 hexadecimal characters"
+                          />
+                        </label>
+                        <label>
+                          Salary salt
+                          <input
+                            required
+                            type="password"
+                            autoComplete="off"
+                            value={salt}
+                            onChange={(e) => {
+                              setSalt(e.target.value);
+                              setPacket(null);
+                            }}
+                            placeholder="64 hexadecimal characters"
+                          />
+                        </label>
+                        <div className="form-tools">
+                          <button
+                            type="button"
+                            className="text-button"
+                            onClick={generatePrivateValues}
+                          >
+                            Generate new private values
+                          </button>
+                          <button
+                            className="text-button"
+                            type="button"
+                            onClick={prepare}
+                          >
+                            Prepare public commitment
+                          </button>
+                        </div>
+                        <details className="secret-details">
+                          <summary>
+                            Reveal private values for offline backup
+                          </summary>
+                          <p>
+                            Keep these in your password manager. Never send them
+                            to the operator.
+                          </p>
+                          <code>{secret || "No secret yet"}</code>
+                          <code>{salt || "No salt yet"}</code>
+                        </details>
+                      </>
+                    )}
+                    <button
+                      className="button full"
+                      type="submit"
+                      disabled={!ready || !!busy}
+                    >
+                      {tab === "register"
+                        ? "Register allocation"
+                        : "Prove & record claim"}
+                      <ArrowRight size={17} />
+                    </button>
+                  </fieldset>
+                  <p className="form-hint">
+                    {!ready
+                      ? "A verified deployment, connected wallet, and loaded ledger are required."
+                      : "Your wallet will request approval. Keep this tab open until confirmation."}
+                  </p>
+                </form>
+              </section>
+              <aside className="form-aside">
+                <section className="panel">
+                  <p className="eyebrow">
+                    {tab === "register"
+                      ? "ADMINISTRATOR CHECKLIST"
+                      : "BEFORE YOU CLAIM"}
+                  </p>
+                  <h3>
+                    {tab === "register"
+                      ? "Built-in guardrails."
+                      : "Prepare. Register. Claim."}
+                  </h3>
+                  <ul>
+                    {(tab === "register"
+                      ? [
+                          "Only the contract administrator can register.",
+                          "An allocation cannot be overwritten.",
+                          "Each registered employee can claim once.",
+                          "Claims cannot exceed the total budget.",
+                        ]
+                      : [
+                          "Save your amount, secret, and salt offline.",
+                          "Prepare and share only the public commitment packet.",
+                          "Ask the administrator to register that packet.",
+                          "Return with the same private inputs to claim.",
+                        ]
+                    ).map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                  <p className="muted">
+                    This MVP supports one allocation per employee per deployed
+                    payroll contract.
+                  </p>
+                </section>
+                {packet && tab === "claim" && (
+                  <section className="panel packet">
+                    <p className="eyebrow">SAFE TO SHARE WITH OPERATOR</p>
+                    <h3>Public registration packet</h3>
+                    <label>
+                      Employee public key<code>{packet.publicKey}</code>
+                    </label>
+                    <label>
+                      Commitment<code>{packet.commitment}</code>
+                    </label>
+                    <button
+                      className="button secondary full"
+                      onClick={() => copy(JSON.stringify(packet, null, 2))}
+                    >
+                      <Copy size={16} />
+                      Copy public packet
+                    </button>
+                  </section>
+                )}
+              </aside>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+
+          {tab === "privacy" && (
+            <div className="privacy-grid">
+              <section className="panel">
+                <ShieldCheck size={28} />
+                <h2>What the circuit enforces</h2>
+                <ul>
+                  <li>Administrator-only registration.</li>
+                  <li>Proof of the employee secret and committed amount.</li>
+                  <li>A positive claim within the remaining budget.</li>
+                  <li>One claim per registered employee.</li>
+                </ul>
+              </section>
+              <section className="panel">
+                <Activity size={28} />
+                <h2>What remains public</h2>
+                <ul>
+                  <li>Budget, cumulative claimed amount, and claim deltas.</li>
+                  <li>Pseudonymous employee keys and commitments.</li>
+                  <li>
+                    Claim status, transaction timing, and public ledger
+                    activity.
+                  </li>
+                </ul>
+                <p>
+                  Individual claim amounts can be inferred from changes to the
+                  public total. Do not use real salary data.
+                </p>
+              </section>
+              <section className="panel privacy-wide">
+                <LockKeyhole size={25} />
+                <div>
+                  <h2>Private witnesses. Honest boundaries.</h2>
+                  <p>
+                    Secrets and salts are held in memory, not browser storage. A
+                    wallet proving provider may process witness data; trust and
+                    configure it accordingly. This is unaudited test-network
+                    software, not a salary payment service. No tokens move when
+                    a claim is recorded.
+                  </p>
+                </div>
+              </section>
+            </div>
+          )}
+
+          <footer className="footer">
+            <span>
+              <span className="footer-dot" />
+              Midnight Preprod · Test-network only
+            </span>
+            <div>
+              {deployment ? (
+                <button
+                  className="text-button"
+                  onClick={() => copy(deployment.contractAddress)}
+                >
+                  Contract {short(deployment.contractAddress)}{" "}
+                  <Copy size={12} />
+                </button>
+              ) : (
+                <span>No verified v2 contract</span>
+              )}
+              <a href={repo} target="_blank" rel="noreferrer">
+                Source code
+                <ArrowUpRight size={14} />
+              </a>
+            </div>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
