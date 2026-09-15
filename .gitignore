@@ -9,3 +9,7 @@ npm-audit.json
 proof-server-status.json
 midnight-level-db/
 .nightforge/
+.private/
+.env.*
+!.env.example
+artifacts/
