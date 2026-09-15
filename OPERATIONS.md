@@ -1,28 +1,27 @@
-# Operations runbook — Corporate Payroll Splits
+# Operations — Nabha Payroll
 
-## Release gate
+## Local release gate
 
-Run `npm ci`, `npm run verify:repository`, `npm test`, and `npm run build`. Both GitHub workflows must be green. Confirm that `public/deployment.json` exactly matches the root deployment record and that the production build contains no enabled demo mode.
+Run `npm ci`, `npm run compile`, and `npm run check`. Compile with Compact 0.30.0.
+Tests exercise generated contract code. Publish a new v2 contract; do not use old Preview artifacts.
 
-## Before opening the app
+## Live release gate
 
-1. Select Midnight **Preview** in the wallet.
-2. Confirm contract `payroll` and its address against `deployment.json`.
-3. Confirm the wallet has sufficient NIGHT/DUST and is synchronized.
-4. Load every proving/verifier asset from `public/midnight/payroll`.
-5. Execute one low-risk canary call and retain its finalized transaction ID.
+1. Sign GitHub in as Nabha14 with product-repository write access.
+2. Deploy with a dedicated project wallet using [SETUP.md](SETUP.md).
+3. Verify root/public receipt equality with `npm run verify:deployment`.
+4. Verify the address, finalized deployment transaction, and live ledger on Preprod.
+5. Register one synthetic allocation, claim it, and confirm a repeated claim is rejected.
+6. Push the verified release and wait for its own CI runs to pass.
+7. Publish the frontend, repeat the canary on the public URL, and record the demo.
+8. Update README with actual live evidence, X profile, video, and workflow run links.
 
-## Health signals
+A workflow badge from the old release is not evidence for this release.
 
-Watch wallet detection, indexer connectivity, proving-asset HTTP failures, proof generation duration, rejected/partial transactions, and stale public ledger state. Diagnostics must exclude private inputs.
+## Incidents
 
-## Incident response
-
-Disable claims, reconcile distributed amount against the approved budget, preserve payroll secrets offline, and route discrepancies to payroll operations.
-
-Recovery is complete only after the configured deployment validates, a canary transaction finalizes successfully, ledger state is read from the chain, CI is green, and the incident record contains no private data.
+Check wallet history before retrying uncertain transactions. Disable submissions when state is stale, reconcile public claim totals, and preserve only public receipts in incident notes. Wallet approval is not finalization.
 
 ## Rollback
 
-Roll back the frontend to the last green owner-authored release. A frontend rollback does not roll back ledger state. Contract changes require a new independent deployment and a deliberate update to all deployment evidence.
-
+Roll back frontend artifacts only to a release matching its contract version and receipt. On-chain state cannot be rolled back. Contract changes require a new deployment. Keep old receipts as explicitly labeled historical evidence, never as an active fallback.

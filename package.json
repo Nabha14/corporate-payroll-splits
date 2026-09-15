@@ -9,6 +9,8 @@
     "compile": "npx nightforge compile",
     "deploy": "node deploy.mjs",
     "test": "vitest run",
+    "check": "npm run verify:repository && npm test && npm run build",
+    "verify:deployment": "node scripts/verify-deployment.mjs",
     "verify:repository": "node scripts/verify-submission.mjs",
     "prepare:payroll-artifacts": "node scripts/sync-zk-assets.mjs",
     "predev": "npm run prepare:payroll-artifacts",

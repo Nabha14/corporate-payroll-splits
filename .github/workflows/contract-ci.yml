@@ -3,7 +3,7 @@ name: Corporate Payroll Splits · Compact CI
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'codex/**']
     paths:
       - 'contracts/**'
       - 'src/test/**'

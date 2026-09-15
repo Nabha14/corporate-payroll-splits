@@ -1,71 +1,62 @@
-# Corporate Payroll Splits
+# Nabha · Corporate Payroll Splits
 
-![Frontend CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml/badge.svg?branch=main) ![Contract CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml/badge.svg?branch=main)
+A payroll allocation and claim-accounting MVP built on Midnight by **Nabha**.
+The operator registers employee commitments; employees prove ownership to record one budget-bounded claim.
 
-A private allocation rail for proving a payroll distribution fits a budget without exposing each employee’s salary or destination.
+[![Frontend CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml)
+[![Contract CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml/badge.svg)](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml)
 
-## Payroll assurance index
+> This is **claim accounting, not token payroll**. No tokens are transferred. Claim amounts are public through ledger deltas. Never use real employee data or wallet recovery phrases.
 
-- Business case: [PROPOSAL.md](./PROPOSAL.md)
-- Budget and claim controls: [payroll.test.ts](./src/test/payroll.test.ts)
-- QA ledger: [TESTING.md](./TESTING.md)
-- Deployed contract receipt: [deployment.json](./deployment.json)
+## Run locally
 
-## Use case
+Node 20, npm, and Compact compiler 0.30.0 are required.
 
-A payroll operator defines a total budget and registers committed employee allocations. An eligible employee later claims the amount bound to their private commitment. The operations dashboard focuses on budget health, distributed total, claim readiness, wallet sync, and confirmed contract activity.
-
-## Contract API
-
-The `payroll` Compact contract exposes two business actions:
-
-- `registerEmployeeSalary(employee_pk, commitment)` binds a private allocation commitment.
-- `claimSalary()` allows the matching employee to claim.
-
-`computeCommitment(amount, salt, sk)` derives the private commitment used by the flow. The ledger keeps the public budget and aggregate distributed amount while employee amounts and receiving identities remain shielded.
-
-## Current Preview deployment
-
-| Field | Value |
-| --- | --- |
-| Network | Midnight Preview |
-| Contract address | `d7cb98b65cebf797cbcd53ebf9dbe0d1a13a23824676f86d1da12bb6237d912b` |
-| Contract name | `payroll` |
-| Deployment transaction | `003776fe366397dc2a0ae0297944fbced697ddf69b23f081c786518884106582a8` |
-| Payroll deployer | `mn_addr_preview1u0x5hj5kx4utwdkq2hahjhvj5ndwed44z43aazwqwnckafce086qjpgcp7` |
-| Deployment time | `2026-08-03T18:55:43.988Z` |
-| Indexer | Confirmed |
-
-## Developer path
-
-The payroll sandbox is funded only through the [official Preview faucet](https://faucet.preview.midnight.network/).
-
-```bash
-npm install
+```sh
+npm ci
 npm run compile
 npm test
 npm run build
 npm run dev
 ```
 
-The deploy helper is available once a Preview wallet and provider configuration are present:
+The interface remains usable without a wallet or valid deployment, but chain actions stay disabled.
+Only a **new Preprod payroll v2 deployment** is accepted. The checked-in Preview receipt is historical and cannot be relabeled.
 
-```bash
-npm run deploy
-```
+## Documentation
 
-Do not use real employee data, salaries, or recovery phrases. This is a testnet product demonstration.
+- [Setup and operator deployment](SETUP.md)
+- [Usage: prepare, register, claim](USAGE.md)
+- [Product scope](PROPOSAL.md)
+- [Tests and verification](TESTING.md)
+- [Security and disclosure boundaries](SECURITY.md)
+- [Operations and recovery](OPERATIONS.md)
+- [Submission evidence and demo recording](SUBMISSION.md)
 
-## Pipeline and verification
+## Submission status
 
-Every repository push runs separate frontend and contract checks. A tagged release produces a manifest plus build artifacts. Dependency auditing runs independently and never receives wallet secrets.
+| Requirement              | Evidence / status                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| Public source repository | [Nabha14/corporate-payroll-splits](https://github.com/Nabha14/corporate-payroll-splits)          |
+| 15 meaningful commits    | Repository had 24 commits before the v2 work; new work uses Nabha as author and committer        |
+| CI workflows             | Linked above; latest observed frontend/contract runs passed for the **previous release**, not v2 |
+| Live Preprod v2 contract | **Pending funded project-wallet deployment and canary verification**                             |
+| Live v2 demo             | **Pending hosting and deployment**                                                               |
+| Product X profile        | **Pending account creation by the owner** — no placeholder profile link                          |
+| MVP demo video           | **Pending v2 recording**; see [recording plan](SUBMISSION.md)                                    |
 
-Demo video: [open the payroll operations walkthrough](https://drive.google.com/file/d/1UFQdhII0XHEgIodmr1J3Qj18RF6rzVqZ/view?usp=sharing).
+## Contract and frontend
 
-## Verification
+- `contracts/payroll.compact`: administrator registration, commitment checks, budget limits, replay prevention.
+- `src/App.tsx`: responsive operator/employee workspace and session activity.
+- `src/midnightClient.ts`: Preprod wallet, proving, finalized calls, and ledger reads.
+- `src/runtimeConfig.ts`: deployment receipt validation.
+- `src/test/`: compiled-contract and input/configuration tests.
 
-Privacy is the product feature: employee allocations and destinations remain private, while budget constraints and aggregate distribution state remain enforceable. Run `npm test`, `npm run compile`, and `npm run build`; the five contract scenarios are documented in [TESTING.md](./TESTING.md), the product scope is in [PROPOSAL.md](./PROPOSAL.md), and both CI workflows run on every push and pull request.
+An employee can be registered once and claim once per contract. Use a new contract for a new payroll cycle. Registration does not reserve budget; an oversized allocation fails at claim time.
 
-## Payroll release discipline
+## Release discipline
 
-Before operating Corporate Payroll Splits, read the independent [security model](SECURITY.md) and [operations runbook](OPERATIONS.md). Runtime configuration is fail-closed and its executable checks live in [src/test/runtime-config.test.ts](src/test/runtime-config.test.ts).
+Run `npm run check` before committing. Tag releases compile with the pinned compiler, run tests, build, and require a Preprod v2 receipt before publishing artifacts. Workflow files alone do not prove a live deployment.
+
+New commits must use the project-local Nabha identity. Do not rewrite existing history or add artificial commits to meet a count.

@@ -1,24 +1,30 @@
-# Security model — Corporate Payroll Splits
+# Security model — Nabha Payroll
 
-This repository is operated independently by **Nabha14**. Its keys, wallet session, contract address, private state, CI secrets, and incident decisions must not be reused by another project.
+Owned and operated independently by Nabha14. Wallets, secrets, private state, deployment receipts, and incident decisions are project-specific.
 
-## Assets and trust boundaries
+## Actual disclosure boundary
 
-The protected assets are salary commitment integrity, budget exhaustion, and employee privacy. The browser is untrusted presentation code; the injected wallet authorizes and balances transactions; the Compact circuit enforces ledger rules; the Preview indexer supplies finalized public state. A wallet “submit” prompt is not shown as success by this application until Midnight.js returns finalized transaction data.
+The current contract is a claim-accounting prototype, not a token payment contract. It updates a public cumulative counter. **Each individual amount is revealed by the counter delta**, and the Compact circuit explicitly discloses the amount. Employee keys, commitments, claimed membership, and transaction timing are public. Real-world names are not collected.
 
-## Non-negotiable controls
+The employee secret and salary salt are private witnesses. A selected wallet proving provider may process witness data, so trust its implementation and deployment. The app holds private inputs in memory, clears them on success/disconnect, and does not use local storage or analytics. Browser extensions, screenshots, clipboard managers, and compromised devices remain threats. Revealing values for backup must be done privately.
 
-- Accept only `preview`, contract `payroll`, and the address recorded in `deployment.json`.
-- Never place a seed phrase, witness secret, credential, bid salt, Merkle path, or private-state database in Git, browser logs, analytics, screenshots, or support tickets.
-- Keep demo mode disabled in production. Runtime validation fails closed if it is enabled.
-- Treat wallet extensions and indexer responses as external dependencies; display actionable errors and preserve finalized transaction IDs.
-- Rotate repository and deployment credentials after any suspected exposure. Testnet status does not make a seed phrase safe to publish.
+## Contract controls
 
-## Known boundary
+- Only the key matching the constructor administrator can register.
+- Employee registration cannot be overwritten.
+- A claim must match the committed secret, salt, and amount.
+- Zero claims, repeat claims, unknown employees, and budget overflow are rejected.
+- One employee allocation per contract; a new period requires a new deployment.
+- Registration does not reserve funds or budget.
 
-The repository proves contract logic and a real Preview deployment. It does not claim a third-party audit, regulated-production approval, mainnet availability, or an external issuer/registry service. Those are release gates, not UI features.
+## Deployment controls
 
-## Reporting
+Only Preprod payroll version 2 receipts are accepted. The archived Preview contract lacks replay protection and is intentionally not usable from this frontend. Receipt validation checks structure, not cryptographic proof of an on-chain deployment. A ledger read and canary transaction are required before claiming readiness.
 
-Open a private security advisory in this repository. Do not include private witness material. Include the app version, network, contract address, finalized transaction ID (if any), browser/wallet versions, and reproducible public steps.
+Deployment requires an explicit file under the project's ignored `.private/` directory; it never discovers a shared wallet. Administrator secrets are separate from wallet keys. Private-state encryption requires an owner-supplied random password, not a public address-derived password.
 
+## Limits and reporting
+
+Unaudited test-network software. No production payroll, regulated-payment compliance, amount confidentiality, token settlement, or third-party security certification is claimed.
+
+Report vulnerabilities through a private GitHub security advisory. Include only public reproduction steps, network, release, and transaction IDs. Never include wallet recovery phrases, payroll secrets, salts, private-state databases, or screenshots revealing them.
