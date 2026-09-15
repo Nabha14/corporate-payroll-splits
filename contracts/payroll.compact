@@ -6,6 +6,7 @@ export ledger total_budget: Uint<32>;
 export ledger distributed_amount: Uint<32>;
 export ledger employee_salaries: Map<Bytes<32>, Bytes<32>>;
 export ledger admin: Bytes<32>;
+export ledger claimed: Set<Bytes<32>>;
 
 constructor(budget: Uint<32>, admin_pk: Bytes<32>) {
   total_budget = disclose(budget);
@@ -19,6 +20,7 @@ witness salarySalt(): Bytes<32>;
 
 export circuit registerEmployeeSalary(employee_pk: Bytes<32>, commitment: Bytes<32>): [] {
   assert(disclose(publicKey(localSecretKey())) == admin, "Only admin can register employee salaries");
+  assert(!employee_salaries.member(disclose(employee_pk)), "Employee already registered");
   employee_salaries.insert(disclose(employee_pk), disclose(commitment));
 }
 
@@ -27,6 +29,8 @@ export circuit claimSalary(): [] {
   const pk = publicKey(sk);
   const amt = salaryAmount();
   const salt = salarySalt();
+  assert(!claimed.member(disclose(pk)), "Salary already claimed");
+  assert(disclose(amt) > 0, "Salary must be positive");
 
   // Verify commitment matches registered public hash
   const calculated_commitment = computeCommitment(amt, salt, sk);
@@ -39,6 +43,7 @@ export circuit claimSalary(): [] {
   
   // Mark distributed amount publicly with narrowing cast
   distributed_amount = (distributed_amount + disclose(amt)) as Uint<32>;
+  claimed.insert(disclose(pk));
 }
 
 export circuit computeCommitment(amount: Uint<32>, salt: Bytes<32>, sk: Bytes<32>): Bytes<32> {

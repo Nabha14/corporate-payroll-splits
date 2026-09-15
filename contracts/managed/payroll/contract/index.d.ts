@@ -48,6 +48,12 @@ export type Ledger = {
     [Symbol.iterator](): Iterator<[Uint8Array, Uint8Array]>
   };
   readonly admin: Uint8Array;
+  claimed: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(elem_0: Uint8Array): boolean;
+    [Symbol.iterator](): Iterator<Uint8Array>
+  };
 }
 
 export type ContractReferenceLocations = any;

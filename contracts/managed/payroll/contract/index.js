@@ -82,21 +82,21 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('registerEmployeeSalary',
                                      'argument 1 (as invoked from Typescript)',
-                                     'payroll.compact line 20 char 1',
+                                     'payroll.compact line 21 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(employee_pk_0.buffer instanceof ArrayBuffer && employee_pk_0.BYTES_PER_ELEMENT === 1 && employee_pk_0.length === 32)) {
           __compactRuntime.typeError('registerEmployeeSalary',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'payroll.compact line 20 char 1',
+                                     'payroll.compact line 21 char 1',
                                      'Bytes<32>',
                                      employee_pk_0)
         }
         if (!(commitment_0.buffer instanceof ArrayBuffer && commitment_0.BYTES_PER_ELEMENT === 1 && commitment_0.length === 32)) {
           __compactRuntime.typeError('registerEmployeeSalary',
                                      'argument 2 (argument 3 as invoked from Typescript)',
-                                     'payroll.compact line 20 char 1',
+                                     'payroll.compact line 21 char 1',
                                      'Bytes<32>',
                                      commitment_0)
         }
@@ -125,7 +125,7 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('claimSalary',
                                      'argument 1 (as invoked from Typescript)',
-                                     'payroll.compact line 25 char 1',
+                                     'payroll.compact line 27 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
@@ -178,19 +178,20 @@ export class Contract {
     if (!(typeof(budget_0) === 'bigint' && budget_0 >= 0n && budget_0 <= 4294967295n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 1 (argument 2 as invoked from Typescript)',
-                                 'payroll.compact line 10 char 1',
+                                 'payroll.compact line 11 char 1',
                                  'Uint<0..4294967296>',
                                  budget_0)
     }
     if (!(admin_pk_0.buffer instanceof ArrayBuffer && admin_pk_0.BYTES_PER_ELEMENT === 1 && admin_pk_0.length === 32)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 2 (argument 3 as invoked from Typescript)',
-                                 'payroll.compact line 10 char 1',
+                                 'payroll.compact line 11 char 1',
                                  'Bytes<32>',
                                  admin_pk_0)
     }
     const state_0 = new __compactRuntime.ContractState();
     let stateValue_0 = __compactRuntime.StateValue.newArray();
+    stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
     stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
     stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
     stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
@@ -250,6 +251,17 @@ export class Contract {
                                       partialProofData,
                                       [
                                        { push: { storage: false,
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(4n),
+                                                                                              alignment: _descriptor_9.alignment() }).encode() } },
+                                       { push: { storage: true,
+                                                 value: __compactRuntime.StateValue.newMap(
+                                                          new __compactRuntime.StateMap()
+                                                        ).encode() } },
+                                       { ins: { cached: false, n: 1 } }]);
+    __compactRuntime.queryLedgerState(context,
+                                      partialProofData,
+                                      [
+                                       { push: { storage: false,
                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),
                                                                                               alignment: _descriptor_9.alignment() }).encode() } },
                                        { push: { storage: true,
@@ -299,7 +311,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('localSecretKey',
                                  'return value',
-                                 'payroll.compact line 16 char 1',
+                                 'payroll.compact line 17 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -316,7 +328,7 @@ export class Contract {
     if (!(typeof(result_0) === 'bigint' && result_0 >= 0n && result_0 <= 4294967295n)) {
       __compactRuntime.typeError('salaryAmount',
                                  'return value',
-                                 'payroll.compact line 17 char 1',
+                                 'payroll.compact line 18 char 1',
                                  'Uint<0..4294967296>',
                                  result_0)
     }
@@ -333,7 +345,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('salarySalt',
                                  'return value',
-                                 'payroll.compact line 18 char 1',
+                                 'payroll.compact line 19 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -363,6 +375,23 @@ export class Contract {
                                                                                                      { popeq: { cached: false,
                                                                                                                 result: undefined } }]).value)),
                             'Only admin can register employee salaries');
+    __compactRuntime.assert(!_descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,
+                                                                                       partialProofData,
+                                                                                       [
+                                                                                        { dup: { n: 0 } },
+                                                                                        { idx: { cached: false,
+                                                                                                 pushPath: false,
+                                                                                                 path: [
+                                                                                                        { tag: 'value',
+                                                                                                          value: { value: _descriptor_9.toValue(2n),
+                                                                                                                   alignment: _descriptor_9.alignment() } }] } },
+                                                                                        { push: { storage: false,
+                                                                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(employee_pk_0),
+                                                                                                                                               alignment: _descriptor_0.alignment() }).encode() } },
+                                                                                        'member',
+                                                                                        { popeq: { cached: true,
+                                                                                                   result: undefined } }]).value),
+                            'Employee already registered');
     __compactRuntime.queryLedgerState(context,
                                       partialProofData,
                                       [
@@ -387,6 +416,25 @@ export class Contract {
     const pk_0 = this._publicKey_0(sk_0);
     const amt_0 = this._salaryAmount_0(context, partialProofData);
     const salt_0 = this._salarySalt_0(context, partialProofData);
+    __compactRuntime.assert(!_descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,
+                                                                                       partialProofData,
+                                                                                       [
+                                                                                        { dup: { n: 0 } },
+                                                                                        { idx: { cached: false,
+                                                                                                 pushPath: false,
+                                                                                                 path: [
+                                                                                                        { tag: 'value',
+                                                                                                          value: { value: _descriptor_9.toValue(4n),
+                                                                                                                   alignment: _descriptor_9.alignment() } }] } },
+                                                                                        { push: { storage: false,
+                                                                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(pk_0),
+                                                                                                                                               alignment: _descriptor_0.alignment() }).encode() } },
+                                                                                        'member',
+                                                                                        { popeq: { cached: true,
+                                                                                                   result: undefined } }]).value),
+                            'Salary already claimed');
+    let t_0;
+    __compactRuntime.assert((t_0 = amt_0, t_0 > 0n), 'Salary must be positive');
     const calculated_commitment_0 = this._computeCommitment_0(amt_0,
                                                               salt_0,
                                                               sk_0);
@@ -428,8 +476,8 @@ export class Contract {
     __compactRuntime.assert(this._equal_1(stored_commitment_0,
                                           calculated_commitment_0),
                             'Revealed salary parameters do not match commitment');
-    let t_0;
-    __compactRuntime.assert((t_0 = _descriptor_2.fromValue(__compactRuntime.queryLedgerState(context,
+    let t_1;
+    __compactRuntime.assert((t_1 = _descriptor_2.fromValue(__compactRuntime.queryLedgerState(context,
                                                                                              partialProofData,
                                                                                              [
                                                                                               { dup: { n: 0 } },
@@ -443,7 +491,7 @@ export class Contract {
                                                                                                          result: undefined } }]).value)
                                    +
                                    amt_0,
-                             t_0
+                             t_1
                              <=
                              _descriptor_2.fromValue(__compactRuntime.queryLedgerState(context,
                                                                                        partialProofData,
@@ -460,7 +508,7 @@ export class Contract {
                             'Budget limit exceeded');
     const tmp_0 = ((t1) => {
                     if (t1 > 4294967295n) {
-                      throw new __compactRuntime.CompactError('payroll.compact line 41 char 24: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 4294967295');
+                      throw new __compactRuntime.CompactError('payroll.compact line 45 char 24: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than 4294967295');
                     }
                     return t1;
                   })(_descriptor_2.fromValue(__compactRuntime.queryLedgerState(context,
@@ -487,13 +535,29 @@ export class Contract {
                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(tmp_0),
                                                                                               alignment: _descriptor_2.alignment() }).encode() } },
                                        { ins: { cached: false, n: 1 } }]);
+    __compactRuntime.queryLedgerState(context,
+                                      partialProofData,
+                                      [
+                                       { idx: { cached: false,
+                                                pushPath: true,
+                                                path: [
+                                                       { tag: 'value',
+                                                         value: { value: _descriptor_9.toValue(4n),
+                                                                  alignment: _descriptor_9.alignment() } }] } },
+                                       { push: { storage: false,
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(pk_0),
+                                                                                              alignment: _descriptor_0.alignment() }).encode() } },
+                                       { push: { storage: true,
+                                                 value: __compactRuntime.StateValue.newNull().encode() } },
+                                       { ins: { cached: false, n: 1 } },
+                                       { ins: { cached: true, n: 1 } }]);
     return [];
   }
   _computeCommitment_0(amount_0, salt_0, sk_0) {
     return this._persistentHash_0([new Uint8Array([112, 97, 121, 114, 111, 108, 108, 58, 99, 111, 109, 109, 105, 116, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
                                    __compactRuntime.convertFieldToBytes(32,
                                                                         amount_0,
-                                                                        'payroll.compact line 47 char 5'),
+                                                                        'payroll.compact line 52 char 5'),
                                    salt_0,
                                    sk_0]);
   }
@@ -674,6 +738,84 @@ export function ledger(stateOrChargedState) {
                                                                                                    alignment: _descriptor_9.alignment() } }] } },
                                                                         { popeq: { cached: false,
                                                                                    result: undefined } }]).value);
+    },
+    claimed: {
+      isEmpty(...args_0) {
+        if (args_0.length !== 0) {
+          throw new __compactRuntime.CompactError(`isEmpty: expected 0 arguments, received ${args_0.length}`);
+        }
+        return _descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,
+                                                                         partialProofData,
+                                                                         [
+                                                                          { dup: { n: 0 } },
+                                                                          { idx: { cached: false,
+                                                                                   pushPath: false,
+                                                                                   path: [
+                                                                                          { tag: 'value',
+                                                                                            value: { value: _descriptor_9.toValue(4n),
+                                                                                                     alignment: _descriptor_9.alignment() } }] } },
+                                                                          'size',
+                                                                          { push: { storage: false,
+                                                                                    value: __compactRuntime.StateValue.newCell({ value: _descriptor_5.toValue(0n),
+                                                                                                                                 alignment: _descriptor_5.alignment() }).encode() } },
+                                                                          'eq',
+                                                                          { popeq: { cached: true,
+                                                                                     result: undefined } }]).value);
+      },
+      size(...args_0) {
+        if (args_0.length !== 0) {
+          throw new __compactRuntime.CompactError(`size: expected 0 arguments, received ${args_0.length}`);
+        }
+        return _descriptor_5.fromValue(__compactRuntime.queryLedgerState(context,
+                                                                         partialProofData,
+                                                                         [
+                                                                          { dup: { n: 0 } },
+                                                                          { idx: { cached: false,
+                                                                                   pushPath: false,
+                                                                                   path: [
+                                                                                          { tag: 'value',
+                                                                                            value: { value: _descriptor_9.toValue(4n),
+                                                                                                     alignment: _descriptor_9.alignment() } }] } },
+                                                                          'size',
+                                                                          { popeq: { cached: true,
+                                                                                     result: undefined } }]).value);
+      },
+      member(...args_0) {
+        if (args_0.length !== 1) {
+          throw new __compactRuntime.CompactError(`member: expected 1 argument, received ${args_0.length}`);
+        }
+        const elem_0 = args_0[0];
+        if (!(elem_0.buffer instanceof ArrayBuffer && elem_0.BYTES_PER_ELEMENT === 1 && elem_0.length === 32)) {
+          __compactRuntime.typeError('member',
+                                     'argument 1',
+                                     'payroll.compact line 9 char 1',
+                                     'Bytes<32>',
+                                     elem_0)
+        }
+        return _descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,
+                                                                         partialProofData,
+                                                                         [
+                                                                          { dup: { n: 0 } },
+                                                                          { idx: { cached: false,
+                                                                                   pushPath: false,
+                                                                                   path: [
+                                                                                          { tag: 'value',
+                                                                                            value: { value: _descriptor_9.toValue(4n),
+                                                                                                     alignment: _descriptor_9.alignment() } }] } },
+                                                                          { push: { storage: false,
+                                                                                    value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(elem_0),
+                                                                                                                                 alignment: _descriptor_0.alignment() }).encode() } },
+                                                                          'member',
+                                                                          { popeq: { cached: true,
+                                                                                     result: undefined } }]).value);
+      },
+      [Symbol.iterator](...args_0) {
+        if (args_0.length !== 0) {
+          throw new __compactRuntime.CompactError(`iter: expected 0 arguments, received ${args_0.length}`);
+        }
+        const self_0 = state.asArray()[4];
+        return self_0.asMap().keys().map((elem) => _descriptor_0.fromValue(elem.value))[Symbol.iterator]();
+      }
     }
   };
 }
@@ -696,21 +838,21 @@ export const pureCircuits = {
     if (!(typeof(amount_0) === 'bigint' && amount_0 >= 0n && amount_0 <= 4294967295n)) {
       __compactRuntime.typeError('computeCommitment',
                                  'argument 1',
-                                 'payroll.compact line 44 char 1',
+                                 'payroll.compact line 49 char 1',
                                  'Uint<0..4294967296>',
                                  amount_0)
     }
     if (!(salt_0.buffer instanceof ArrayBuffer && salt_0.BYTES_PER_ELEMENT === 1 && salt_0.length === 32)) {
       __compactRuntime.typeError('computeCommitment',
                                  'argument 2',
-                                 'payroll.compact line 44 char 1',
+                                 'payroll.compact line 49 char 1',
                                  'Bytes<32>',
                                  salt_0)
     }
     if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
       __compactRuntime.typeError('computeCommitment',
                                  'argument 3',
-                                 'payroll.compact line 44 char 1',
+                                 'payroll.compact line 49 char 1',
                                  'Bytes<32>',
                                  sk_0)
     }
@@ -724,7 +866,7 @@ export const pureCircuits = {
     if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {
       __compactRuntime.typeError('publicKey',
                                  'argument 1',
-                                 'payroll.compact line 53 char 1',
+                                 'payroll.compact line 58 char 1',
                                  'Bytes<32>',
                                  sk_0)
     }
