@@ -8,6 +8,24 @@ The operator registers employee commitments; employees prove ownership to record
 
 > This is **claim accounting, not token payroll**. No tokens are transferred. Claim amounts are public through ledger deltas. Never use real employee data or wallet recovery phrases.
 
+## Existing Preview deployment
+
+The previous release's deployment details and walkthrough are preserved here. They refer to **Midnight Preview**, not the new Preprod v2 release. Current chain availability has not been reverified; the v2 frontend intentionally does not connect to this older contract.
+
+- [Existing deployment receipt](deployment.json)
+- [Existing payroll operations walkthrough](https://drive.google.com/file/d/1UFQdhII0XHEgIodmr1J3Qj18RF6rzVqZ/view?usp=sharing)
+
+| Field | Recorded value |
+| --- | --- |
+| Network | Midnight Preview |
+| Contract name | `payroll` |
+| Contract address | `d7cb98b65cebf797cbcd53ebf9dbe0d1a13a23824676f86d1da12bb6237d912b` |
+| Deployment transaction | `003776fe366397dc2a0ae0297944fbced697ddf69b23f081c786518884106582a8` |
+| Payroll deployer | `mn_addr_preview1u0x5hj5kx4utwdkq2hahjhvj5ndwed44z43aazwqwnckafce086qjpgcp7` |
+| Deployment time | `2026-08-03T18:55:43.988Z` |
+
+These are previous-release references, not evidence of a live Preprod v2 deployment. A hosted frontend URL was not recorded in the previous README; none is invented here.
+
 ## Run locally
 
 Node 20, npm, and Compact compiler 0.30.0 are required.
@@ -43,7 +61,7 @@ Only a **new Preprod payroll v2 deployment** is accepted. The checked-in Preview
 | Live Preprod v2 contract | **Pending funded project-wallet deployment and canary verification**                             |
 | Live v2 demo             | **Pending hosting and deployment**                                                               |
 | Product X profile        | **Pending account creation by the owner** — no placeholder profile link                          |
-| MVP demo video           | **Pending v2 recording**; see [recording plan](SUBMISSION.md)                                    |
+| MVP demo video           | [Existing Preview walkthrough](https://drive.google.com/file/d/1UFQdhII0XHEgIodmr1J3Qj18RF6rzVqZ/view?usp=sharing); **v2 recording pending** — see [recording plan](SUBMISSION.md) |
 
 ## Contract and frontend
 
