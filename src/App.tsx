@@ -41,6 +41,8 @@ const tabs = [
   { id: "claim", label: "Employee claim", icon: Fingerprint },
   { id: "privacy", label: "Privacy & trust", icon: ShieldCheck },
 ] as const;
+const isOneAmWallet = (wallet: InitialAPI) =>
+  /1am/i.test(`${wallet.name} ${wallet.rdns}`);
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -109,16 +111,18 @@ export default function App() {
           );
       }
     }
-    const detect = () =>
-      setWallets(
-        Object.values(
-          (window as Window & { midnight?: Record<string, InitialAPI> })
-            .midnight ?? {},
-        ).filter(
-          (w) =>
-            typeof w.connect === "function" && w.apiVersion?.startsWith("4."),
-        ),
+    const detect = () => {
+      const oneAmWallets = Object.values(
+        (window as Window & { midnight?: Record<string, InitialAPI> }).midnight ?? {},
+      ).filter(
+        (w) =>
+          typeof w.connect === "function" &&
+          w.apiVersion?.startsWith("4.") &&
+          isOneAmWallet(w),
       );
+      setWallets(oneAmWallets);
+      setWalletIndex("0");
+    };
     void load();
     detect();
     const timer = setInterval(detect, 1500);
@@ -165,7 +169,7 @@ export default function App() {
   async function connect() {
     if (!wallets[Number(walletIndex)]) {
       setError(
-        "Install or unlock a Midnight wallet supporting DApp Connector v4, then reload.",
+        "Install or unlock the 1AM Wallet with DApp Connector v4, then reload.",
       );
       return;
     }
@@ -363,7 +367,7 @@ export default function App() {
             ) : (
               <>
                 <select
-                  aria-label="Choose Midnight wallet"
+                  aria-label="Choose 1AM Wallet"
                   value={walletIndex}
                   onChange={(e) => setWalletIndex(e.target.value)}
                   disabled={!!busy || !wallets.length}
@@ -375,7 +379,7 @@ export default function App() {
                       </option>
                     ))
                   ) : (
-                    <option>No wallet detected</option>
+                    <option>No 1AM Wallet detected</option>
                   )}
                 </select>
                 <button
@@ -384,7 +388,7 @@ export default function App() {
                   onClick={connect}
                 >
                   <Wallet size={16} />
-                  Connect wallet
+                  Connect 1AM Wallet
                 </button>
               </>
             )}
