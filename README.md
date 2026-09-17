@@ -3,6 +3,8 @@
 A payroll allocation and claim-accounting MVP built on Midnight by **Nabha**.
 The operator registers employee commitments; employees prove ownership to record one budget-bounded claim.
 
+**Live app:** [nabha-zoj6.vercel.app](https://nabha-zoj6.vercel.app)
+
 [![Frontend CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/frontend-ci.yml)
 [![Contract CI](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml/badge.svg)](https://github.com/Nabha14/corporate-payroll-splits/actions/workflows/contract-ci.yml)
 
@@ -59,7 +61,7 @@ Only a **new Preprod payroll v2 deployment** is accepted. The checked-in Preview
 | 15 meaningful commits    | Repository had 24 commits before the v2 work; new work uses Nabha as author and committer        |
 | CI workflows             | Linked above; latest observed frontend/contract runs passed for the **previous release**, not v2 |
 | Live Preprod v2 contract | **Pending funded project-wallet deployment and canary verification**                             |
-| Live v2 demo             | **Pending hosting and deployment**                                                               |
+| Live v2 demo             | [nabha-zoj6.vercel.app](https://nabha-zoj6.vercel.app) — frontend published; Preprod contract deployment pending |
 | Product X profile        | **Pending account creation by the owner** — no placeholder profile link                          |
 | MVP demo video           | [Existing Preview walkthrough](https://drive.google.com/file/d/1UFQdhII0XHEgIodmr1J3Qj18RF6rzVqZ/view?usp=sharing); **v2 recording pending** — see [recording plan](SUBMISSION.md) |
 
